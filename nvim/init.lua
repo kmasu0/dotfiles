@@ -69,6 +69,10 @@ require("packer").startup(function()
     'nvim-lualine/lualine.nvim',
     requires = { 'kyazdani42/nvim-web-devicons', opt = true }
   }
+  use {
+    'lambdalisue/fern-renderer-nerdfont.vim',
+    requires = 'lambdalisue/nerdfont.vim'
+  }
   use 'windwp/nvim-autopairs'
 
   use 'airblade/vim-gitgutter'
@@ -317,6 +321,7 @@ highlight LspReferenceWrite cterm=underline ctermfg=1 ctermbg=8 gui=underline gu
 -- lambdalisue/fern.vim --------------------------------------------------------
 vim.cmd [[
 nnoremap <C-l> :Fern . -reveal=% -drawer -toggle -width=40<CR>
+let g:fern#renderer = "nerdfont"
 ]]
 -- colorscheme -----------------------------------------------------------------
 vim.cmd [[
