@@ -8,18 +8,18 @@ set termguicolors
 ]]
 
 -- init packer.nvim ------------------------------------------------------------
-local ensure_packer = function()
-  local fn = vim.fn
-  local install_path = fn.stdpath('data')..'/site/pack/packer/start/packer.nvim'
-  if fn.empty(fn.glob(install_path)) > 0 then
-    fn.system({'git', 'clone', '--depth', '1', 'https://github.com/wbthomason/packer.nvim', install_path})
-    vim.cmd [[packadd packer.nvim]]
-    return true
-  end
-  return false
+local install_path = vim.fn.stdpath('data')..'/site/pack/packer/start/packer.nvim'
+local packer_bootstrap = nil
+if vim.fn.empty(vim.fn.glob(install_path)) > 0 then
+  packer_bootstrap = vim.fn.system {
+    'git',
+    'clone',
+    '--depth',
+    '1',
+    'https://github.com/wbthomason/packer.nvim',
+    install_path
+  }
 end
-
-local packer_bootstrap = ensure_packer()
 
 -- plugins ---------------------------------------------------------------------
 local init_fern = function()
@@ -52,9 +52,19 @@ require("packer").startup(function()
   -- use 'saadparwaiz1/cmp_luasnip'
   -- use 'quangnguyen30192/cmp-nvim-ultisnips'
 
+  -- use 'nvim-lua/plenary.nvim'
+  -- use {
+  --   'jose-elias-alvarez/null-ls.nvim',
+  --   requires = { 'nvim-lua/plenary.nvim', opt = true }
+  -- }
+
   use 'lambdalisue/fern.vim'
   use 'kyazdani42/nvim-web-devicons'
-  use {'akinsho/bufferline.nvim', tag = "v2.*", requires = 'kyazdani42/nvim-web-devicons'}
+  use {
+    'akinsho/bufferline.nvim',
+    tag = "v2.*",
+    requires = 'kyazdani42/nvim-web-devicons'
+  }
   use {
     'nvim-lualine/lualine.nvim',
     requires = { 'kyazdani42/nvim-web-devicons', opt = true }
@@ -109,18 +119,29 @@ end)
 --   end
 -- })
 -- set up lspconfig language servers -------------------------------------------
-local function on_attach(client, bufnr)
-    -- Find the clients capabilities
-    local cap = client.resolved_capabilities
+local on_attach = function(client, bufnr)
+  -- Find the clients capabilities
+  local cap = client.resolved_capabilities
+  -- Only highlight if compatible with the language
+  if cap.document_highlight then
+      vim.cmd('augroup LspHighlight')
+      vim.cmd('autocmd!')
+      vim.cmd('autocmd CursorHold <buffer> lua vim.lsp.buf.document_highlight()')
+      vim.cmd('autocmd CursorMoved <buffer> lua vim.lsp.buf.clear_references()')
+      vim.cmd('augroup END')
+  end
 
-    -- Only highlight if compatible with the language
-    if cap.document_highlight then
-        vim.cmd('augroup LspHighlight')
-        vim.cmd('autocmd!')
-        vim.cmd('autocmd CursorHold <buffer> lua vim.lsp.buf.document_highlight()')
-        vim.cmd('autocmd CursorMoved <buffer> lua vim.lsp.buf.clear_references()')
-        vim.cmd('augroup END')
-    end
+  vim.keymap.set('n', 'K',  '<cmd>lua vim.lsp.buf.hover()<CR>')
+  vim.keymap.set('n', 'gf', '<cmd>lua vim.lsp.buf.formatting()<CR>')
+  vim.keymap.set('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>')
+  vim.keymap.set('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>')
+  vim.keymap.set('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>')
+  vim.keymap.set('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>')
+  vim.keymap.set('n', 'gt', '<cmd>lua vim.lsp.buf.type_definition()<CR>')
+  vim.keymap.set('n', 'gn', '<cmd>lua vim.lsp.buf.rename()<CR>')
+  vim.keymap.set('n', 'ga', '<cmd>lua vim.lsp.buf.code_action()<CR>')
+
+  vim.cmd('command! -nargs=0 Format :lua vim.lsp.buf.formatting()')
 end
 
 local ccls_cache_path = os.getenv('HOME')..'.cache/ccls-cache'
@@ -196,6 +217,16 @@ cmp.setup.cmdline(":", {
   },
 })
 
+-- 'jose-elias-alvarez/null-ls.nvim' -------------------------------------------
+-- require("null-ls").setup({
+--   on_init = function(new_client, _)
+--     new_client.offset_encoding = 'utf-32'
+--   end,
+--   sources = {
+--       require("null-ls").builtins.formatting.clang_format,
+--   },
+-- })
+
 -- nvim-treesitter/nvim-treesitter ---------------------------------------------
 require'nvim-treesitter.configs'.setup {
   highlight = {
@@ -206,6 +237,7 @@ require'nvim-treesitter.configs'.setup {
   },
   ensure_installed = 'all',
 }
+
 require("nvim-autopairs").setup({})
 require('lualine').setup({
   options = {
@@ -253,22 +285,27 @@ require('bufferline').setup({
   },
 })
 
--- keyboard shortcut ----------------------------------------------------------
-vim.keymap.set('n', 'K',  '<cmd>lua vim.lsp.buf.hover()<CR>')
-vim.keymap.set('n', 'gf', '<cmd>lua vim.lsp.buf.formatting()<CR>')
-vim.keymap.set('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>')
-vim.keymap.set('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>')
-vim.keymap.set('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>')
-vim.keymap.set('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>')
-vim.keymap.set('n', 'gt', '<cmd>lua vim.lsp.buf.type_definition()<CR>')
-vim.keymap.set('n', 'gn', '<cmd>lua vim.lsp.buf.rename()<CR>')
-vim.keymap.set('n', 'ga', '<cmd>lua vim.lsp.buf.code_action()<CR>')
+-- LSP shortcut ----------------------------------------------------------------
 vim.keymap.set('n', 'ge', '<cmd>lua vim.diagnostic.open_float()<CR>')
 vim.keymap.set('n', 'g]', '<cmd>lua vim.diagnostic.goto_next()<CR>')
 vim.keymap.set('n', 'g[', '<cmd>lua vim.diagnostic.goto_prev()<CR>')
 -- LSP handlers ----------------------------------------------------------------
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
-  vim.lsp.diagnostic.on_publish_diagnostics, { virtual_text = false }
+  vim.lsp.diagnostic.on_publish_diagnostics,
+  {
+    virtual_text = false,
+    border = "double"
+  }
+)
+vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
+  vim.lsp.handlers.hover,
+  {
+    separator = true,
+    border = "double"
+  }
+)
+vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
+  vim.lsp.handlers.signature_help, { separator = true }
 )
 -- Reference highlight ---------------------------------------------------------
 vim.cmd [[
@@ -290,7 +327,6 @@ let g:python_highlight_all = 1
 let g:vim_markdown_conceal = 0
 let g:vim_markdown_conceal_code_blocks = 0
 
-syntax enable
 set termguicolors
 set background=dark
 let g:cpp_function_highlight = 1
