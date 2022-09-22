@@ -171,6 +171,15 @@ require'lspconfig'.rust_analyzer.setup{
 require'lspconfig'.pylsp.setup{
   on_attach = on_attach,
 }
+require'lspconfig'.hls.setup{
+  on_attach = on_attach,
+}
+require'lspconfig'.gopls.setup{
+  on_attach = on_attach,
+}
+require'lspconfig'.vimls.setup{
+  on_attach = on_attach,
+}
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
@@ -296,18 +305,19 @@ vim.keymap.set('n', 'ge', '<cmd>lua vim.diagnostic.open_float()<CR>')
 vim.keymap.set('n', 'g]', '<cmd>lua vim.diagnostic.goto_next()<CR>')
 vim.keymap.set('n', 'g[', '<cmd>lua vim.diagnostic.goto_prev()<CR>')
 -- LSP handlers ----------------------------------------------------------------
+local lsp_boarder = "double"
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
   vim.lsp.diagnostic.on_publish_diagnostics,
   {
     virtual_text = false,
-    border = "double"
+    border = lsp_boarder
   }
 )
 vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
   vim.lsp.handlers.hover,
   {
     separator = true,
-    border = "double"
+    border = lsp_boarder
   }
 )
 vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
