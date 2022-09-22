@@ -87,6 +87,7 @@ require("packer").startup(function()
   use 'pboettch/vim-cmake-syntax'
   use 'rhysd/vim-llvm'
   use 'habamax/vim-rst'
+  use 'terrortylor/nvim-comment'
 
   -- colorscheme
   use {
@@ -289,6 +290,7 @@ require('bufferline').setup({
   },
 })
 
+require('nvim_comment').setup()
 -- LSP shortcut ----------------------------------------------------------------
 vim.keymap.set('n', 'ge', '<cmd>lua vim.diagnostic.open_float()<CR>')
 vim.keymap.set('n', 'g]', '<cmd>lua vim.diagnostic.goto_next()<CR>')
