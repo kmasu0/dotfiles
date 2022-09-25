@@ -38,13 +38,15 @@ require("packer").startup(function()
   use 'wbthomason/packer.nvim'
   use 'neovim/nvim-lspconfig'
 
+  use 'hrsh7th/nvim-cmp'
   use 'hrsh7th/cmp-nvim-lsp'
+  use 'hrsh7th/cmp-nvim-lsp-signature-help'
+  use 'hrsh7th/cmp-nvim-lsp-document-symbol'
   use 'hrsh7th/cmp-buffer'
   use 'hrsh7th/cmp-path'
   use 'hrsh7th/cmp-cmdline'
-  use 'hrsh7th/nvim-cmp'
-
   use 'hrsh7th/cmp-vsnip'
+
   use 'honza/vim-snippets'
 
   use 'hrsh7th/vim-vsnip'
@@ -98,6 +100,7 @@ require("packer").startup(function()
   end
 end)
 
+-- setup mason -----------------------------------------------------------------
 -- require('mason').setup({
 --   ui = {
 --       icons = {
@@ -123,7 +126,56 @@ end)
 --     require('lspconfig')[server].setup(opt)
 --   end
 -- })
--- set up lspconfig language servers -------------------------------------------
+
+-- hrsh7th/cmp-nvim-lsp --------------------------------------------------------
+local cmp = require("cmp")
+cmp.setup({
+  snippet = {
+    expand = function(args)
+      vim.fn["vsnip#anonymous"](args.body)
+      -- require('luasnip').lsp_expand(args.body)
+      -- require('snippy').expand_snippet(args.body)
+      -- vim.fn["UltiSnips#Anon"](args.body)
+    end,
+  },
+  sources = {
+    { name = "nvim_lsp" },
+    { name = "nvim_lsp_document_symbol" },
+    { name = "nvim_lsp_signature_help"},
+    { name = "vsnip" },
+    { name = "buffer" },
+    { name = "path" },
+  },
+  mapping = cmp.mapping.preset.insert({
+    ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+    ['<C-f>'] = cmp.mapping.scroll_docs(4),
+    ["<C-p>"] = cmp.mapping.select_prev_item(),
+    ["<STAB>"] = cmp.mapping.select_prev_item(),
+    ["<C-n>"] = cmp.mapping.select_next_item(),
+    ["<TAB>"] = cmp.mapping.select_next_item(),
+    ['<C-l>'] = cmp.mapping.complete(),
+    ['<C-k>'] = cmp.mapping.abort(),
+    ["<C-j>"] = cmp.mapping.confirm { select = true },
+  }),
+  experimental = {
+    ghost_text = true,
+  },
+})
+cmp.setup.cmdline('/', {
+  mapping = cmp.mapping.preset.cmdline(),
+  sources = {
+    { name = 'buffer' }
+  }
+})
+cmp.setup.cmdline(":", {
+  mapping = cmp.mapping.preset.cmdline(),
+  sources = {
+    { name = "path" },
+    { name = "cmdline" },
+  },
+})
+
+-- initialize lspconfig --------------------------------------------------------
 local on_attach = function(client, bufnr)
   -- Find the clients capabilities
   local cap = client.resolved_capabilities
@@ -146,11 +198,31 @@ local on_attach = function(client, bufnr)
   vim.keymap.set('n', 'gn', '<cmd>lua vim.lsp.buf.rename()<CR>')
   vim.keymap.set('n', 'ga', '<cmd>lua vim.lsp.buf.code_action()<CR>')
 
+  vim.cmd [[
+  imap <expr> <C-j>   vsnip#expandable()  ? '<Plug>(vsnip-expand)'         : '<C-j>'
+  smap <expr> <C-j>   vsnip#expandable()  ? '<Plug>(vsnip-expand)'         : '<C-j>'
+  imap <expr> <C-l>   vsnip#available(1)  ? '<Plug>(vsnip-expand-or-jump)' : '<C-l>'
+  smap <expr> <C-l>   vsnip#available(1)  ? '<Plug>(vsnip-expand-or-jump)' : '<C-l>'
+  imap <expr> <Tab>   vsnip#jumpable(1)   ? '<Plug>(vsnip-jump-next)'      : '<Tab>'
+  smap <expr> <Tab>   vsnip#jumpable(1)   ? '<Plug>(vsnip-jump-next)'      : '<Tab>'
+  imap <expr> <S-Tab> vsnip#jumpable(-1)  ? '<Plug>(vsnip-jump-prev)'      : '<S-Tab>'
+  smap <expr> <S-Tab> vsnip#jumpable(-1)  ? '<Plug>(vsnip-jump-prev)'      : '<S-Tab>'
+  nmap        s   <Plug>(vsnip-select-text)
+  xmap        s   <Plug>(vsnip-select-text)
+  nmap        S   <Plug>(vsnip-cut-text)
+  xmap        S   <Plug>(vsnip-cut-text)
+  ]]
+
   vim.cmd('command! -nargs=0 Format :lua vim.lsp.buf.formatting()')
 end
 
+local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+capabilities.textDocument.completion.completionItem.snippetSupport = true
+
+-- set up lspconfig language servers -------------------------------------------
 local ccls_cache_path = os.getenv('HOME')..'.cache/ccls-cache'
 require'lspconfig'.ccls.setup {
+  capabilities = capabilities,
   on_attach = on_attach,
   cmd = { '/opt/ccls/bin/ccls' },
   single_file_support = true,
@@ -160,76 +232,37 @@ require'lspconfig'.ccls.setup {
   },
 }
 require'lspconfig'.cmake.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
 require'lspconfig'.bashls.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
 require'lspconfig'.rust_analyzer.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
 require'lspconfig'.pylsp.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
 require'lspconfig'.hls.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
 require'lspconfig'.gopls.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
 require'lspconfig'.vimls.setup{
+  capabilities = capabilities,
   on_attach = on_attach,
 }
-
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-capabilities.textDocument.completion.completionItem.snippetSupport = true
 require'lspconfig'.jsonls.setup{
   capabilities = capabilities,
   on_attach = on_attach,
 }
-
--- hrsh7th/cmp-nvim-lsp --------------------------------------------------------
-local cmp = require("cmp")
-cmp.setup({
-  snippet = {
-    expand = function(args)
-      vim.fn["vsnip#anonymous"](args.body)
-      -- require('luasnip').lsp_expand(args.body)
-      -- require('snippy').expand_snippet(args.body)
-      -- vim.fn["UltiSnips#Anon"](args.body)
-    end,
-  },
-  sources = {
-    { name = "nvim_lsp" },
-    { name = "vsnip" },
-    { name = "buffer" },
-    { name = "path" },
-  },
-  mapping = cmp.mapping.preset.insert({
-    ["<C-p>"] = cmp.mapping.select_prev_item(),
-    ["<C-n>"] = cmp.mapping.select_next_item(),
-    ["<TAB>"] = cmp.mapping.select_next_item(),
-    ['<C-l>'] = cmp.mapping.complete(),
-    ['<C-e>'] = cmp.mapping.abort(),
-    ["<C-k>"] = cmp.mapping.confirm { select = true },
-  }),
-  experimental = {
-    ghost_text = true,
-  },
-})
-cmp.setup.cmdline('/', {
-  mapping = cmp.mapping.preset.cmdline(),
-  sources = {
-    { name = 'buffer' }
-  }
-})
-cmp.setup.cmdline(":", {
-  mapping = cmp.mapping.preset.cmdline(),
-  sources = {
-    { name = "path" },
-    { name = "cmdline" },
-  },
-})
 
 -- 'jose-elias-alvarez/null-ls.nvim' -------------------------------------------
 -- require("null-ls").setup({
@@ -309,7 +342,7 @@ local lsp_boarder = "double"
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
   vim.lsp.diagnostic.on_publish_diagnostics,
   {
-    virtual_text = false,
+    virtual_text = true,
     border = lsp_boarder
   }
 )
@@ -377,7 +410,7 @@ set numberwidth=5
 " set cursorline
 set nocursorline
 set nocursorcolumn
-set laststatus=2
+set laststatus=3
 set cmdheight=2
 set showmatch
 set ruler
