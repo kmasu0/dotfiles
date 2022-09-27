@@ -25,6 +25,19 @@ end
 local init_fern = function()
   vim.opt.number = false
   vim.api.nvim_buf_set_keymap(0, 'n', '<C-h>', '<Plug>(fern-action-hidden:toggle)', {})
+  vim.cmd [[
+  nmap <buffer> o <Plug>(fern-action-open:edit)
+  nmap <buffer> s <Plug>(fern-action-open:vsplit)
+  nmap <buffer> N <Plug>(fern-action-new-file)
+  nmap <buffer> q :<C-u>quit<CR>'
+  nmap <buffer><expr> <Plug>(fern-my-expand-or-collapse)
+      \ fern#smart#leaf(
+      \   "\<Plug>(fern-action-collapse)",
+      \   "\<Plug>(fern-action-expand)",
+      \   "\<Plug>(fern-action-collapse)",
+      \ )
+  nmap <buffer><nowait> l <Plug>(fern-my-expand-or-collapse)
+  ]]
 end
 
 local fern_id = vim.api.nvim_create_augroup('fern-custom', {})
@@ -60,8 +73,19 @@ require("packer").startup(function()
   --   requires = { 'nvim-lua/plenary.nvim', opt = true }
   -- }
 
-  use 'lambdalisue/fern.vim'
   use 'kyazdani42/nvim-web-devicons'
+
+  use 'lambdalisue/fern.vim'
+  use {
+    'lambdalisue/fern-renderer-nerdfont.vim',
+    requires = 'lambdalisue/nerdfont.vim'
+  }
+  use {
+    'lambdalisue/fern-hijack.vim',
+    requires = 'lambdalisue/fern.vim'
+  }
+  use 'lambdalisue/glyph-palette.vim'
+
   use {
     'akinsho/bufferline.nvim',
     tag = "v2.*",
@@ -72,10 +96,14 @@ require("packer").startup(function()
     requires = { 'kyazdani42/nvim-web-devicons', opt = true }
   }
   use {
-    'lambdalisue/fern-renderer-nerdfont.vim',
-    requires = 'lambdalisue/nerdfont.vim'
+    'akinsho/toggleterm.nvim',
+    tag = '*'
+  }
+  use { 'ibhagwan/fzf-lua',
+    requires = { 'kyazdani42/nvim-web-devicons' }
   }
   use 'windwp/nvim-autopairs'
+  use 'chentoast/marks.nvim'
 
   use 'airblade/vim-gitgutter'
   use 'mileszs/ack.vim'
@@ -264,16 +292,6 @@ require'lspconfig'.jsonls.setup{
   on_attach = on_attach,
 }
 
--- 'jose-elias-alvarez/null-ls.nvim' -------------------------------------------
--- require("null-ls").setup({
---   on_init = function(new_client, _)
---     new_client.offset_encoding = 'utf-32'
---   end,
---   sources = {
---       require("null-ls").builtins.formatting.clang_format,
---   },
--- })
-
 -- nvim-treesitter/nvim-treesitter ---------------------------------------------
 require'nvim-treesitter.configs'.setup {
   highlight = {
@@ -285,7 +303,10 @@ require'nvim-treesitter.configs'.setup {
   ensure_installed = 'all',
 }
 
+-- 'windwp/nvim-autopairs' -----------------------------------------------------
 require("nvim-autopairs").setup({})
+
+-- 'nvim-lualine/lualine.nvim' -------------------------------------------------
 require('lualine').setup({
   options = {
     icons_enabled = true,
@@ -312,6 +333,8 @@ require('lualine').setup({
   inactive_winbar = {},
   extensions = {}
 })
+
+-- 'akinsho/bufferline.nvim' ---------------------------------------------------
 require('bufferline').setup({
   options = {
     diagnostics = 'nvim_lsp',
@@ -327,16 +350,86 @@ require('bufferline').setup({
     buffer_selected = {
       fg = '#fdf6e3',
       bold = true,
-      italic = true,
+      italic = false,
     },
   },
 })
 
+-- 'terrortylor/nvim-comment' --------------------------------------------------
 require('nvim_comment').setup()
+
+-- 'akinsho/toggleterm.nvim' ---------------------------------------------------
+require("toggleterm").setup({
+  vim.cmd[[
+  autocmd TermEnter term://*toggleterm#* tnoremap <silent><c-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
+  nnoremap <silent><c-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
+  inoremap <silent><c-t> <Esc><Cmd>exe v:count1 . "ToggleTerm"<CR>
+  ]],
+  direction = 'float',
+})
+
+-- 'ibhagwan/fzf-lua' ----------------------------------------------------------
+vim.cmd [[
+nnoremap <C-p> <cmd>lua require('fzf-lua').files()<CR>
+]]
+
+-- 'chentoast/marks.nvim' ------------------------------------------------------
+require'marks'.setup ({
+  default_mappings = false,
+  mappings = {
+    toggle = "mm",
+    next = "mn",
+    prev = "mp",
+    delete_line = "dm",
+    prev = false
+  }
+  -- set_next               Set next available lowercase mark at cursor.
+  -- toggle                 Toggle next available mark at cursor.
+  -- delete_line            Deletes all marks on current line.
+  -- delete_buf             Deletes all marks in current buffer.
+  -- next                   Goes to next mark in buffer.
+  -- prev                   Goes to previous mark in buffer.
+  -- preview                Previews mark (will wait for user input). press <cr> to just preview the next mark.
+  -- set                    Sets a letter mark (will wait for input).
+  -- delete                 Delete a letter mark (will wait for input).
+  --
+  -- set_bookmark[0-9]      Sets a bookmark from group[0-9].
+  -- delete_bookmark[0-9]   Deletes all bookmarks from group[0-9].
+  -- delete_bookmark        Deletes the bookmark under the cursor.
+  -- next_bookmark          Moves to the next bookmark having the same type as the
+  --                        bookmark under the cursor.
+  -- prev_bookmark          Moves to the previous bookmark having the same type as the
+  --                        bookmark under the cursor.
+  -- next_bookmark[0-9]     Moves to the next bookmark of of the same group type. Works by
+  --                        first going according to line number, and then according to buffer
+  --                        number.
+  -- prev_bookmark[0-9]     Moves to the previous bookmark of of the same group type. Works by
+  --                        first going according to line number, and then according to buffer
+  --                        number.
+  -- annotate               Prompts the user for a virtual line annotation that is then placed
+  --                        above the bookmark. Requires neovim 0.6+ and is not mapped by default.
+})
+
+-- 'lambdalisue/fern.vim' ------------------------------------------------------
+vim.cmd [[
+nnoremap <C-l> :Fern . -reveal=% -drawer -toggle -width=40<CR>
+let g:fern#renderer = "nerdfont"
+]]
+
+-- 'lambdalisue/glyph-palette.vim' ---------------------------------------------
+vim.cmd [[
+augroup my-glyph-palette
+  autocmd! *
+  autocmd FileType fern call glyph_palette#apply()
+  autocmd FileType nerdtree,startify call glyph_palette#apply()
+augroup END
+]]
+
 -- LSP shortcut ----------------------------------------------------------------
 vim.keymap.set('n', 'ge', '<cmd>lua vim.diagnostic.open_float()<CR>')
 vim.keymap.set('n', 'g]', '<cmd>lua vim.diagnostic.goto_next()<CR>')
 vim.keymap.set('n', 'g[', '<cmd>lua vim.diagnostic.goto_prev()<CR>')
+
 -- LSP handlers ----------------------------------------------------------------
 local lsp_boarder = "double"
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
@@ -356,19 +449,7 @@ vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(
 vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(
   vim.lsp.handlers.signature_help, { separator = true }
 )
--- Reference highlight ---------------------------------------------------------
-vim.cmd [[
-set updatetime=500
-highlight LspReferenceText  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
-highlight LspReferenceRead  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
-highlight LspReferenceWrite cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
-]]
--- lambdalisue/fern.vim --------------------------------------------------------
-vim.cmd [[
-nnoremap <C-l> :Fern . -reveal=% -drawer -toggle -width=40<CR>
-let g:fern#renderer = "nerdfont"
-]]
--- colorscheme -----------------------------------------------------------------
+-- highlight/colorscheme -------------------------------------------------------
 vim.cmd [[
 let g:cpp_class_scope_highlight = 1
 let g:cpp_class_decl_highlight = 1
@@ -385,15 +466,18 @@ let g:cpp_member_highlight = 1
 let g:cpp_simple_highlight = 1
 autocmd ColorScheme * highlight MatchParen guibg=Red
 autocmd ColorScheme * highlight Include guifg=#98C379 gui=underline
-autocmd ColorScheme * highlight Comment gui=italic
 autocmd ColorScheme * highligh CursorLine gui=underline guibg=none
 autocmd ColorScheme * highligh CursorLineNr gui=underline guibg=none
 autocmd ColorScheme * highligh ColorColumn guibg=#132739
 colorscheme deep-space
 set colorcolumn=80
+highlight LspReferenceText  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
+highlight LspReferenceRead  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
+highlight LspReferenceWrite cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
 ]]
 -- Other settings -------------------------------------------------------------
 vim.cmd [[
+set updatetime=500
 set nocompatible
 
 set nobackup
