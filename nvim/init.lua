@@ -60,7 +60,7 @@ require("packer").startup(function()
   use 'hrsh7th/cmp-cmdline'
   use 'hrsh7th/cmp-vsnip'
 
-  use 'honza/vim-snippets'
+  -- use 'honza/vim-snippets'
 
   use 'hrsh7th/vim-vsnip'
   use 'hrsh7th/vim-vsnip-integ'
@@ -206,7 +206,8 @@ cmp.setup.cmdline(":", {
 -- initialize lspconfig --------------------------------------------------------
 local on_attach = function(client, bufnr)
   -- Find the clients capabilities
-  local cap = client.resolved_capabilities
+  -- local cap = client.resolved_capabilities
+  local cap = client.server_capabilities
   -- Only highlight if compatible with the language
   if cap.document_highlight then
       vim.cmd('augroup LspHighlight')
@@ -217,7 +218,8 @@ local on_attach = function(client, bufnr)
   end
 
   vim.keymap.set('n', 'K',  '<cmd>lua vim.lsp.buf.hover()<CR>')
-  vim.keymap.set('n', 'gf', '<cmd>lua vim.lsp.buf.formatting()<CR>')
+  -- vim.keymap.set('n', 'gf', '<cmd>lua vim.lsp.buf.formatting()<CR>')
+  vim.keymap.set('n', 'gf', '<cmd>lua vim.lsp.buf.format { async = true }<CR>')
   vim.keymap.set('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>')
   vim.keymap.set('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>')
   vim.keymap.set('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>')
@@ -241,7 +243,7 @@ local on_attach = function(client, bufnr)
   xmap        S   <Plug>(vsnip-cut-text)
   ]]
 
-  vim.cmd('command! -nargs=0 Format :lua vim.lsp.buf.formatting()')
+  vim.cmd('command! -nargs=0 Format :lua vim.lsp.buf.format { async = true }')
 end
 
 local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
@@ -249,15 +251,16 @@ capabilities.textDocument.completion.completionItem.snippetSupport = true
 
 -- set up lspconfig language servers -------------------------------------------
 local ccls_cache_path = os.getenv('HOME')..'.cache/ccls-cache'
+local util = require'lspconfig.util'
 require'lspconfig'.ccls.setup {
   capabilities = capabilities,
   on_attach = on_attach,
   cmd = { '/opt/ccls/bin/ccls' },
-  single_file_support = true,
   init_options = {
     index = { threads = 8; };
     cache = { directory = ccls_cache_path; };
   },
+  root_dir = util.root_pattern('compile_commands.json', '.ccls', '.ccls-root', '.git'),
 }
 require'lspconfig'.cmake.setup{
   capabilities = capabilities,
@@ -483,6 +486,8 @@ set nocompatible
 set nobackup
 set nowritebackup
 set shortmess+=c
+
+set mouse=
 
 set signcolumn=yes
 set ttimeoutlen=50
