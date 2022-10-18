@@ -109,7 +109,7 @@ require("packer").startup(function()
   use 'mileszs/ack.vim'
 
   use 'mhinz/neovim-remote'
-  use 'tversteeg/registers.nvim'
+  -- use 'tversteeg/registers.nvim'
 
   use 'nvim-treesitter/nvim-treesitter'
 
@@ -243,19 +243,24 @@ local on_attach = function(client, bufnr)
   xmap        S   <Plug>(vsnip-cut-text)
   ]]
 
-  vim.cmd('command! -nargs=0 Format :lua vim.lsp.buf.format { async = true }')
+  vim.cmd [[
+  command! -nargs=0 Format :lua vim.lsp.buf.format { async = true }
+  autocmd FileType llvm nmap <buffer><silent>gd <Plug>(llvm-goto-definition)
+  ]]
 end
 
-local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+-- local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
 
 -- set up lspconfig language servers -------------------------------------------
 local ccls_cache_path = os.getenv('HOME')..'.cache/ccls-cache'
+local ccls_exec_path = '/opt/ccls/bin/ccls'
 local util = require'lspconfig.util'
 require'lspconfig'.ccls.setup {
   capabilities = capabilities,
   on_attach = on_attach,
-  cmd = { '/opt/ccls/bin/ccls' },
+  cmd = { ccls_exec_path },
   init_options = {
     index = { threads = 8; };
     cache = { directory = ccls_cache_path; };
@@ -304,6 +309,7 @@ require'nvim-treesitter.configs'.setup {
     enable = false,
   },
   ensure_installed = 'all',
+  additional_vim_regex_highlighting = false,
 }
 
 -- 'windwp/nvim-autopairs' -----------------------------------------------------
