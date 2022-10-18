@@ -254,7 +254,7 @@ local capabilities = require('cmp_nvim_lsp').default_capabilities()
 capabilities.textDocument.completion.completionItem.snippetSupport = true
 
 -- set up lspconfig language servers -------------------------------------------
-local ccls_cache_path = os.getenv('HOME')..'.cache/ccls-cache'
+local ccls_cache_path = os.getenv('HOME')..'/.cache/ccls-cache'
 local ccls_exec_path = '/opt/ccls/bin/ccls'
 local util = require'lspconfig.util'
 require'lspconfig'.ccls.setup {
