@@ -65,7 +65,6 @@ require("packer").startup(function()
   use("hrsh7th/cmp-cmdline")
   use("hrsh7th/cmp-nvim-lua")
   use("hrsh7th/cmp-vsnip")
-  use("lukas-reineke/cmp-under-comparator")
 
   use("j-hui/fidget.nvim")
   
@@ -111,14 +110,15 @@ require("packer").startup(function()
   
   use("nvim-treesitter/nvim-treesitter")
   
-  use("bfrg/vim-cpp-modern")
+  -- use("bfrg/vim-cpp-modern")
   use("pboettch/vim-cmake-syntax")
   use("rhysd/vim-llvm")
   use("habamax/vim-rst")
   use("terrortylor/nvim-comment")
   
   -- colorscheme
-  use("tyrannicaltoucan/vim-deep-space")
+  use("sainnhe/sonokai")
+  use("rktjmp/highlight-current-n.nvim")
   
   if packer_bootstrap then
     require("packer").sync()
@@ -127,6 +127,17 @@ end)
 
 -- hrsh7th/cmp-nvim-lsp --------------------------------------------------------
 local cmp = require("cmp")
+local cmp_under_fn = function(e1, e2)
+  local _, e1_under = e1.completion_item.label:find "^_+"
+  local _, e2_under = e2.completion_item.label:find "^_+"
+  e1_under = e1_under or 0
+  e2_under = e2_under or 0
+  if e1_under > e2_under then
+    return false
+  elseif e1_under < e2_under then
+    return true
+  end
+end
 cmp.setup({
   snippet = {
     expand = function(args)
@@ -164,7 +175,7 @@ cmp.setup({
       cmp.config.compare.offset,
       cmp.config.compare.exact,
       cmp.config.compare.score,
-      require "cmp-under-comparator".under,
+      cmp_under_fn,
       cmp.config.compare.kind,
       cmp.config.compare.sort_text,
       cmp.config.compare.length,
@@ -395,12 +406,12 @@ vim.cmd([[
 require("marks").setup({
   default_mappings = false,
   mappings = {
-    toggle = "mm",
     next = "mn",
     prev = "mp",
+    toggle = "mm",
     delete_line = "dm",
-    prev = false,
   },
+  vim.cmd([[nnoremap ml :MarksListBuf<CR>]])
   -- set_next               Set next available lowercase mark at cursor.
   -- toggle                 Toggle next available mark at cursor.
   -- delete_line            Deletes all marks on current line.
@@ -430,8 +441,8 @@ require("marks").setup({
 
 -- 'lambdalisue/fern.vim' ------------------------------------------------------
 vim.cmd([[
-nnoremap <C-l> :Fern . -reveal=% -drawer -toggle -width=40<CR>
-let g:fern#renderer = "nerdfont"
+  nnoremap <C-l> :Fern . -reveal=% -drawer -toggle -width=40<CR>
+  let g:fern#renderer = "nerdfont"
 ]])
 
 -- 'lambdalisue/glyph-palette.vim' ---------------------------------------------
@@ -461,31 +472,70 @@ vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
 vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { separator = true })
 
 -- highlight/colorscheme -------------------------------------------------------
+-- let g:cpp_class_scope_highlight = 1
+-- let g:cpp_class_decl_highlight = 1
+-- let g:cpp_concepts_highlight = 1
+-- let g:cpp_function_highlight = 1
+-- let g:cpp_attributes_highlight = 1
+-- let g:cpp_member_highlight = 1
+-- let g:cpp_simple_highlight = 1
+
 vim.cmd([[
-let g:cpp_class_scope_highlight = 1
-let g:cpp_class_decl_highlight = 1
-let g:cpp_concepts_highlight = 1
 let g:python_highlight_all = 1
 let g:vim_markdown_conceal = 0
 let g:vim_markdown_conceal_code_blocks = 0
 
 set termguicolors
 set background=dark
-let g:cpp_function_highlight = 1
-let g:cpp_attributes_highlight = 1
-let g:cpp_member_highlight = 1
-let g:cpp_simple_highlight = 1
 autocmd ColorScheme * highlight MatchParen guibg=Red
 autocmd ColorScheme * highlight Include guifg=#98C379 gui=underline
 autocmd ColorScheme * highligh CursorLine gui=underline guibg=none
 autocmd ColorScheme * highligh CursorLineNr gui=underline guibg=none
 autocmd ColorScheme * highligh ColorColumn guibg=#132739
-colorscheme deep-space
+colorscheme sonokai
 set colorcolumn=80
 highlight LspReferenceText  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
 highlight LspReferenceRead  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
 highlight LspReferenceWrite cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
 highlight IndentBlanklineIndent2 guifg=#222c3d gui=nocombine
+]])
+
+-- "rktjmp/highlight-current-n.nvim" -------------------------------------------
+require("highlight_current_n").setup({
+  highlight_group = "IncSearch", -- highlight group name to use for highlight
+})
+local function _1_()
+  local hcn = require("highlight_current_n")
+  local feedkeys = vim.api.nvim_feedkeys
+  local _2_ = vim.v.searchforward
+  if (_2_ == 0) then
+    return hcn.N()
+  elseif (_2_ == 1) then
+    return hcn.n()
+  else
+    return nil
+  end
+end
+
+local function _4_()
+  local hcn = require("highlight_current_n")
+  local feedkeys = vim.api.nvim_feedkeys
+  local _5_ = vim.v.searchforward
+  if (_5_ == 0) then
+    return hcn.n()
+  elseif (_5_ == 1) then
+    return hcn.N()
+  else
+    return nil
+  end
+end
+
+vim.keymap.set("n", "n", _1_)
+vim.keymap.set("n", "N", _4_)
+vim.cmd([[
+augroup ClearSearchHL
+  autocmd CmdlineLeave /,\? lua require('highlight_current_n')['/,?']()
+augroup END
 ]])
 -- Other settings --------------------------------------------------------------
 vim.cmd([[
