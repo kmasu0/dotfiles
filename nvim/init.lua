@@ -198,6 +198,11 @@ cmp.setup.cmdline(":", {
 })
 
 -- initialize lspconfig --------------------------------------------------------
+local diag_opts = { noremap=true, silent=true }
+vim.keymap.set("n", "ge", vim.diagnostic.open_float, diag_opts)
+vim.keymap.set("n", "g]", vim.diagnostic.goto_next, diag_opts)
+vim.keymap.set("n", "g[", vim.diagnostic.goto_prev, diag_opts)
+
 local on_attach = function(client, bufnr)
   -- Find the clients capabilities
   -- local cap = client.resolved_capabilities
@@ -211,16 +216,29 @@ local on_attach = function(client, bufnr)
     vim.cmd("augroup END")
   end
   
-  vim.keymap.set("n", "K", "<cmd>lua vim.lsp.buf.hover()<CR>")
+  local bufopts = { noremap=true, silent=true, buffer=bufnr }
+  vim.keymap.set("n", "K", vim.lsp.buf.hover, bufopts)
+  vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts)
+  vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts)
+  vim.keymap.set("n", "gD", vim.lsp.buf.declaration, bufopts)
+  vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts)
+  vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, bufopts)
+  vim.keymap.set("n", "gt", vim.lsp.buf.type_definition, bufopts)
+  vim.keymap.set("n", "gn", vim.lsp.buf.rename, bufopts)
+  vim.keymap.set("n", "ga", vim.lsp.buf.code_action, bufopts)
   -- vim.keymap.set('n', 'gf', '<cmd>lua vim.lsp.buf.format { async = true }<CR>')
-  vim.keymap.set("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>")
-  vim.keymap.set("n", "gd", "<cmd>lua vim.lsp.buf.definition()<CR>")
-  vim.keymap.set("n", "gD", "<cmd>lua vim.lsp.buf.declaration()<CR>")
-  vim.keymap.set("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>")
-  vim.keymap.set("n", "gt", "<cmd>lua vim.lsp.buf.type_definition()<CR>")
-  vim.keymap.set("n", "gn", "<cmd>lua vim.lsp.buf.rename()<CR>")
-  vim.keymap.set("n", "ga", "<cmd>lua vim.lsp.buf.code_action()<CR>")
   
+local lsp_boarder = "double"
+vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
+  virtual_text = true,
+  border = lsp_boarder,
+})
+vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
+  separator = true,
+  border = lsp_boarder,
+})
+vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { separator = true })
+
   vim.cmd([[
   imap <expr> <C-j>   vsnip#expandable()  ? '<Plug>(vsnip-expand)'         : '<C-j>'
   smap <expr> <C-j>   vsnip#expandable()  ? '<Plug>(vsnip-expand)'         : '<C-j>'
@@ -268,6 +286,24 @@ require("lspconfig").bashls.setup({
 require("lspconfig").rust_analyzer.setup({
   capabilities = capabilities,
   on_attach = on_attach,
+  settings = {
+    ["rust-analyzer"] = {
+      imports = {
+        granularity = {
+          group = "module",
+        },
+        prefix = "self",
+      },
+      cargo = {
+        buildScripts = {
+          enable = true,
+        },
+      },
+      procMacro = {
+        enable = true
+      },
+    }
+  },
 })
 require("lspconfig").pylsp.setup({
   capabilities = capabilities,
@@ -322,12 +358,9 @@ require("nvim-autopairs").setup({})
 vim.opt.list = true
 vim.opt.listchars:append("eol:↴")
 require("indent_blankline").setup({
-  char_highlight_list = {
-    "IndentBlanklineIndent2",
-  },
-  space_char_highlight_list = {
-    "IndentBlanklineIndent2",
-  },
+  char = "¦",
+  indent_level = 40,
+  use_treesitter = true,
   show_trailing_blankline_indent = false,
   show_end_of_line = true,
   -- show_current_context = true,
@@ -454,23 +487,6 @@ augroup my-glyph-palette
 augroup END
 ]])
 
--- Diagnostic shortcut ---------------------------------------------------------
-vim.keymap.set("n", "ge", "<cmd>lua vim.diagnostic.open_float()<CR>")
-vim.keymap.set("n", "g]", "<cmd>lua vim.diagnostic.goto_next()<CR>")
-vim.keymap.set("n", "g[", "<cmd>lua vim.diagnostic.goto_prev()<CR>")
-
--- Diagnostic handlers ---------------------------------------------------------
-local lsp_boarder = "double"
-vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
-  virtual_text = true,
-  border = lsp_boarder,
-})
-vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
-  separator = true,
-  border = lsp_boarder,
-})
-vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { separator = true })
-
 -- highlight/colorscheme -------------------------------------------------------
 -- let g:cpp_class_scope_highlight = 1
 -- let g:cpp_class_decl_highlight = 1
@@ -487,17 +503,21 @@ let g:vim_markdown_conceal_code_blocks = 0
 
 set termguicolors
 set background=dark
-autocmd ColorScheme * highlight MatchParen guibg=Red
-autocmd ColorScheme * highlight Include guifg=#98C379 gui=underline
-autocmd ColorScheme * highligh CursorLine gui=underline guibg=none
-autocmd ColorScheme * highligh CursorLineNr gui=underline guibg=none
-autocmd ColorScheme * highligh ColorColumn guibg=#132739
+autocmd ColorScheme * hi MatchParen guibg=Red
+autocmd ColorScheme * hi Include guifg=#98C379 gui=underline
+autocmd ColorScheme * hi CursorLine gui=underline guibg=none
+autocmd ColorScheme * hi CursorLineNr gui=underline guibg=none
+autocmd ColorScheme * hi ColorColumn guibg=#132739
+let g:sonokai_diagnostic_text_highlight = 1
+let g:sonokai_diagnostic_line_highlight = 1
+let g:sonokai_diagnostic_virtual_text = 'colored'
+let g:sonokai_style = 'andromeda'
+let g:sonokai_better_performance = 1 
 colorscheme sonokai
 set colorcolumn=80
-highlight LspReferenceText  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
-highlight LspReferenceRead  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
-highlight LspReferenceWrite cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
-highlight IndentBlanklineIndent2 guifg=#222c3d gui=nocombine
+hi LspReferenceText  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
+hi LspReferenceRead  cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
+hi LspReferenceWrite cterm=underline ctermfg=1 ctermbg=8 gui=underline guifg=#A00000 guibg=#104040
 ]])
 
 -- "rktjmp/highlight-current-n.nvim" -------------------------------------------
@@ -533,6 +553,7 @@ end
 vim.keymap.set("n", "n", _1_)
 vim.keymap.set("n", "N", _4_)
 vim.cmd([[
+nmap * *N
 augroup ClearSearchHL
   autocmd CmdlineLeave /,\? lua require('highlight_current_n')['/,?']()
 augroup END
@@ -562,9 +583,6 @@ set laststatus=3
 set cmdheight=2
 set showmatch
 set ruler
-" set list
-" set listchars=tab:▸\ ,eol:↲,extends:»,precedes:«,nbsp:%
-" set listchars=tab:▸\
 set showcmd
 
 " cursor move
